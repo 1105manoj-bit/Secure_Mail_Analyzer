@@ -1,0 +1,46 @@
+# Database - contains your private analysis history, dont push this
+phishguard_history.db
+
+# Your custom blocklist entries, keep these private
+custom_blocklist.json
+
+# Uploaded email files - may contain real sensitive emails
+uploads/
+
+# Python cache files, auto generated
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment, everyone creates their own
+venv/
+env/
+.venv/
+.env/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS garbage files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment variables and API keys if you add them later
+.env
+.env.local
+.env.production
+
+# Real email files you might analyze - dont accidentally push these
+# The test_emails folder is fine to push, but if you add real emails keep them out
+*.eml.real
+*.msg.real
+real_emails/
+
+# Logs and temp files
+*.log
+*.tmp
