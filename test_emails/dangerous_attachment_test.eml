@@ -1,0 +1,50 @@
+From: attacker@malware-delivery.tk
+To: victim@yourcompany.com
+Reply-To: collect@evil-bot.ru
+Subject: URGENT: Invoice and Setup Required - Action Needed
+Date: Mon, 12 May 2026 10:00:00 +0000
+Message-ID: <fake123@malware-delivery.tk>
+MIME-Version: 1.0
+X-Mailer: PHPMailer 6.0
+Content-Type: multipart/mixed; boundary="boundary_dangerous_001"
+
+--boundary_dangerous_001
+Content-Type: text/plain; charset=UTF-8
+
+Dear Customer,
+
+Please find the attached files below and action immediately:
+
+1. invoice_2026.bat - Run this to process your payment
+2. setup_required.exe - Install this software urgently
+3. document.pdf.vbs - Open this document
+
+Your account will be suspended within 24 hours if you do not comply.
+
+Do NOT ignore this email. Legal action will be taken.
+
+Regards,
+Billing Department
+
+--boundary_dangerous_001
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="invoice_2026.bat"
+Content-Transfer-Encoding: base64
+
+dGhpcyBpcyBhIHRlc3QgYmF0IGZpbGUgY29udGVudA==
+
+--boundary_dangerous_001
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="setup_required.exe"
+Content-Transfer-Encoding: base64
+
+dGhpcyBpcyBhIHRlc3QgZXhlIGZpbGUgY29udGVudA==
+
+--boundary_dangerous_001
+Content-Type: application/octet-stream
+Content-Disposition: attachment; filename="document.pdf.vbs"
+Content-Transfer-Encoding: base64
+
+dGhpcyBpcyBhIHRlc3QgdmJzIGZpbGUgY29udGVudA==
+
+--boundary_dangerous_001--

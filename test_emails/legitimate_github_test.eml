@@ -1,0 +1,36 @@
+From: notifications@github.com
+To: developer@yourcompany.com
+Reply-To: notifications@github.com
+Subject: [GitHub] Your pull request was merged
+Date: Mon, 12 May 2026 11:00:00 +0000
+Message-ID: <real-message-id-123@github.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Received: from smtp.github.com (smtp.github.com [192.30.252.1])
+Received: from mail.github.com (mail.github.com [192.30.252.2])
+
+Hi developer,
+
+Your pull request #142 "Fix authentication bug in login module"
+has been successfully merged into the main branch of your repository.
+
+Repository: your-username/your-project
+Branch: main
+Merged by: senior-dev
+
+You can view the merged changes at:
+https://github.com/your-username/your-project/pull/142
+
+Summary of changes:
+- Fixed null pointer exception in auth module
+- Added unit tests for edge cases
+- Updated documentation
+
+Thank you for your contribution to the project.
+
+The GitHub Team
+https://github.com
+
+---
+You are receiving this because you authored the thread.
+Manage your notifications: https://github.com/settings/notifications

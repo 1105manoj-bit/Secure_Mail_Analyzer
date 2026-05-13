@@ -1,0 +1,43 @@
+From: security-alert@paypal-secure-login.tk
+To: victim@yourcompany.com
+Reply-To: collect@harvester-bot.ru
+Subject: URGENT: Your PayPal account has been LIMITED - Verify NOW!!!
+Date: Mon, 12 May 2026 09:00:00 +0000
+Message-ID: <nodomain>
+MIME-Version: 1.0
+X-Mailer: PHPMailer 6.0
+X-Originating-IP: 185.220.101.47
+Content-Type: text/plain; charset=UTF-8
+Received: from evil.ru (evil.ru [185.220.101.47]) by mail.evil.ru
+Received: from localhost (localhost [127.0.0.1]) by evil.ru
+
+Dear Valued Customer,
+
+We have noticed UNUSUAL activity on your PayPal account.
+Your account access has been LIMITED immediately.
+
+ACTION REQUIRED WITHIN 24 HOURS or your account will be PERMANENTLY SUSPENDED.
+
+To restore your account access you must verify your identity NOW:
+
+Primary link:   http://paypal-secure-login.tk/account/verify/login
+Backup link:    http://bit.ly/3xPay1og
+Secondary:      http://192.168.10.54/paypal/login/verify
+
+You will need to confirm:
+- Full name and address
+- Credit card number and CVV
+- Social Security Number
+- Date of birth
+- ATM PIN number
+
+FINAL NOTICE: Legal action and criminal charges may be filed
+if you do not respond immediately.
+
+PayPal Security Department
+Case ID: PP-2026-FAKE-001
+
+Bitcoin payment option: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+
+Contact: security-alert@paypal-secure-login.tk
+Also contact: collect@harvester-bot.ru
