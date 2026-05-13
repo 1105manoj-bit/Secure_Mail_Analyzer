@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhishGuard — Email Security Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c12;
+  --surface: #0d1320;
+  --surface2: #111927;
+  --border: #1e2d45;
+  --border2: #253650;
+  --accent: #00d4ff;
+  --accent2: #0099cc;
+  --green: #00ff9d;
+  --yellow: #ffd600;
+  --orange: #ff8c00;
+  --red: #ff3355;
+  --red2: #cc1133;
+  --text: #e8f0fe;
+  --text2: #8fabc7;
+  --text3: #4a6a8a;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --glow: 0 0 20px rgba(0,212,255,0.15);
+  --glow-green: 0 0 20px rgba(0,255,157,0.2);
+  --glow-red: 0 0 20px rgba(255,51,85,0.2);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content:'';
+  position:fixed; inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events:none; z-index:0;
+}
+
+/* ── TOP NAV ── */
+.nav {
+  position:sticky; top:0; z-index:100;
+  display:flex; align-items:center; gap:20px;
+  padding:14px 32px;
+  background: rgba(8,12,18,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  display:flex; align-items:center; gap:10px;
+  font-weight:800; font-size:1.1rem; letter-spacing:.04em;
+  color:var(--text);
+}
+.nav-logo .shield {
+  width:32px; height:32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1rem;
+  box-shadow: var(--glow);
+}
+.nav-logo span { color: var(--accent); }
+.nav-badge {
+  font-family:var(--mono); font-size:.65rem;
+  padding:2px 8px; border-radius:20px;
+  background: rgba(0,212,255,0.1);
+  border: 1px solid rgba(0,212,255,0.3);
+  color: var(--accent);
+  letter-spacing:.08em;
+}
+.nav-tabs {
+  display:flex; gap:4px; margin-left:auto;
+  background: var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px; padding:4px;
+}
+.nav-tab {
+  background:none; border:none;
+  padding:7px 16px; border-radius:5px;
+  color: var(--text2); font-family:var(--sans);
+  font-size:.82rem; font-weight:600; letter-spacing:.03em;
+  cursor:pointer; transition:all .2s;
+}
+.nav-tab:hover { color:var(--text); }
+.nav-tab.active {
+  background: linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.08));
+  color: var(--accent);
+  border:1px solid rgba(0,212,255,0.3);
+  box-shadow: var(--glow);
+}
+
+/* ── LAYOUT ── */
+.main { position:relative; z-index:1; padding:32px; max-width:1200px; margin:0 auto; }
+.page { display:none; }
+.page.active { display:block; animation: fadeIn .25s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* ── SECTION HEADER ── */
+.section-header { margin-bottom:28px; }
+.section-title {
+  font-size:1.6rem; font-weight:800; letter-spacing:-.01em;
+  color:var(--text);
+}
+.section-title span { color:var(--accent); }
+.section-sub { color:var(--text2); font-size:.9rem; margin-top:6px; font-family:var(--mono); }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius:12px; padding:24px;
+  transition: border-color .2s;
+}
+.card:hover { border-color: var(--border2); }
+.card-title {
+  font-size:.7rem; font-weight:700; letter-spacing:.12em;
+  color:var(--text3); text-transform:uppercase;
+  margin-bottom:16px; font-family:var(--mono);
+}
+
+/* ── INPUTS ── */
+.input-group { margin-bottom:16px; }
+.label {
+  display:block; font-size:.72rem; font-weight:600;
+  color:var(--text2); letter-spacing:.06em; text-transform:uppercase;
+  font-family:var(--mono); margin-bottom:8px;
+}
+.input {
+  width:100%; background: var(--bg);
+  border:1px solid var(--border); border-radius:8px;
+  padding:12px 16px; color:var(--text);
+  font-family:var(--mono); font-size:.88rem;
+  transition:border-color .2s, box-shadow .2s;
+  outline:none;
+}
+.input:focus { border-color:var(--accent); box-shadow: var(--glow); }
+.input::placeholder { color:var(--text3); }
+textarea.input { min-height:160px; resize:vertical; }
+
+/* ── UPLOAD DROP ZONE ── */
+.drop-zone {
+  border:2px dashed var(--border2);
+  border-radius:12px; padding:48px 32px;
+  text-align:center; cursor:pointer;
+  transition: all .2s;
+  background: var(--surface);
+  position:relative; overflow:hidden;
+}
+.drop-zone::before {
+  content:'';
+  position:absolute; inset:0;
+  background: radial-gradient(circle at center, rgba(0,212,255,0.04) 0%, transparent 70%);
+  pointer-events:none;
+}
+.drop-zone:hover, .drop-zone.over {
+  border-color: var(--accent);
+  background: rgba(0,212,255,0.04);
+  box-shadow: var(--glow);
+}
+.drop-zone:hover::before, .drop-zone.over::before {
+  background: radial-gradient(circle at center, rgba(0,212,255,0.08) 0%, transparent 70%);
+}
+.drop-icon {
+  font-size:3rem; margin-bottom:16px;
+  filter: drop-shadow(0 0 12px rgba(0,212,255,0.4));
+}
+.drop-title {
+  font-size:1.1rem; font-weight:700; color:var(--text);
+  margin-bottom:8px;
+}
+.drop-sub { color:var(--text2); font-size:.85rem; font-family:var(--mono); }
+.drop-formats {
+  display:flex; gap:8px; justify-content:center; margin-top:16px;
+}
+.fmt-badge {
+  font-family:var(--mono); font-size:.65rem;
+  padding:3px 10px; border-radius:4px;
+  border:1px solid var(--border2); color:var(--text3);
+}
+input[type=file] { display:none; }
+
+/* ── BUTTONS ── */
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:11px 24px; border-radius:8px;
+  font-family:var(--sans); font-weight:700; font-size:.85rem;
+  letter-spacing:.03em; cursor:pointer; border:none;
+  transition:all .2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color:#000; box-shadow: 0 4px 16px rgba(0,212,255,0.25);
+}
+.btn-primary:hover { box-shadow:0 6px 24px rgba(0,212,255,0.4); transform:translateY(-1px); }
+.btn-primary:disabled { background:#1e2d45; color:var(--text3); box-shadow:none; transform:none; cursor:not-allowed; }
+.btn-ghost {
+  background:transparent; color:var(--text2);
+  border:1px solid var(--border2);
+}
+.btn-ghost:hover { color:var(--text); border-color:var(--accent); }
+.btn-sm { padding:7px 14px; font-size:.78rem; }
+
+/* ── FILE INFO BAR ── */
+.file-bar {
+  display:none; align-items:center; gap:12px;
+  background: rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.2);
+  border-radius:8px; padding:12px 16px; margin-top:16px;
+}
+.file-bar.show { display:flex; }
+.file-bar-icon { font-size:1.4rem; }
+.file-bar-name { font-family:var(--mono); font-size:.85rem; color:var(--accent); }
+.file-bar-size { font-family:var(--mono); font-size:.75rem; color:var(--text3); }
+.file-bar-clear { margin-left:auto; background:none; border:none; color:var(--text3); cursor:pointer; font-size:1.1rem; }
+.file-bar-clear:hover { color:var(--red); }
+
+/* ── LOADING ── */
+.loader { display:none; text-align:center; padding:40px 20px; }
+.loader.show { display:block; }
+.loader-ring {
+  width:48px; height:48px; margin:0 auto 16px;
+  border:3px solid var(--border2);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.loader-text { font-family:var(--mono); font-size:.82rem; color:var(--text2); }
+.loader-steps { margin-top:12px; }
+.loader-step {
+  font-family:var(--mono); font-size:.72rem; color:var(--text3);
+  padding:2px 0;
+  animation: pulse 1.5s ease infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+/* ── RESULTS ── */
+.results { display:none; margin-top:28px; }
+.results.show { display:block; animation:fadeIn .3s ease; }
+
+/* Score Dashboard */
+.score-dash {
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:24px; margin-bottom:24px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:24px;
+}
+.score-circle-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.score-ring-svg { width:140px; height:140px; }
+.score-ring-track { fill:none; stroke:var(--border2); stroke-width:10; }
+.score-ring-fill {
+  fill:none; stroke-width:10; stroke-linecap:round;
+  transform:rotate(-90deg); transform-origin:50% 50%;
+  transition: stroke-dasharray 1s ease;
+}
+.score-ring-text { font-family:var(--mono); font-size:1.8rem; font-weight:700; fill:var(--text); }
+.score-ring-label { font-family:var(--mono); font-size:.55rem; fill:var(--text3); letter-spacing:.08em; }
+.score-meta { display:flex; flex-direction:column; justify-content:center; gap:12px; }
+.risk-pill {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 20px; border-radius:6px;
+  font-weight:800; font-size:.85rem; letter-spacing:.06em;
+  width:fit-content;
+}
+.risk-pill::before { content:''; width:8px; height:8px; border-radius:50%; }
+.risk-LOW { background:rgba(0,255,157,0.12); color:var(--green); border:1px solid rgba(0,255,157,0.3); }
+.risk-LOW::before { background:var(--green); box-shadow:0 0 6px var(--green); }
+.risk-MEDIUM { background:rgba(255,214,0,0.1); color:var(--yellow); border:1px solid rgba(255,214,0,0.3); }
+.risk-MEDIUM::before { background:var(--yellow); box-shadow:0 0 6px var(--yellow); }
+.risk-HIGH { background:rgba(255,140,0,0.1); color:var(--orange); border:1px solid rgba(255,140,0,0.3); }
+.risk-HIGH::before { background:var(--orange); box-shadow:0 0 6px var(--orange); }
+.risk-CRITICAL { background:rgba(255,51,85,0.12); color:var(--red); border:1px solid rgba(255,51,85,0.3); }
+.risk-CRITICAL::before { background:var(--red); box-shadow:0 0 6px var(--red); animation:blink .8s ease infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.score-verdict { font-size:.92rem; color:var(--text2); line-height:1.5; }
+.score-conf { font-family:var(--mono); font-size:.72rem; color:var(--text3); }
+.score-conf span { color:var(--accent); }
+
+/* Result Sections */
+.result-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+.result-section { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; }
+.result-section.full { grid-column:1/-1; }
+.rs-title {
+  font-size:.68rem; font-weight:700; letter-spacing:.12em;
+  color:var(--text3); text-transform:uppercase;
+  font-family:var(--mono); margin-bottom:14px;
+  display:flex; align-items:center; gap:8px;
+}
+.rs-title-icon { font-size:.9rem; }
+
+/* Auth rows */
+.auth-row {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 0; border-bottom:1px solid var(--border);
+}
+.auth-row:last-child { border-bottom:none; }
+.auth-name {
+  font-family:var(--mono); font-weight:700; font-size:.8rem;
+  width:50px; color:var(--text);
+}
+.auth-status {
+  font-family:var(--mono); font-size:.72rem; font-weight:600;
+  padding:2px 8px; border-radius:4px; letter-spacing:.05em;
+}
+.auth-pass { background:rgba(0,255,157,0.1); color:var(--green); border:1px solid rgba(0,255,157,0.25); }
+.auth-fail { background:rgba(255,51,85,0.1); color:var(--red); border:1px solid rgba(255,51,85,0.25); }
+.auth-none { background:rgba(255,214,0,0.08); color:var(--yellow); border:1px solid rgba(255,214,0,0.2); }
+.auth-error { background:rgba(255,140,0,0.1); color:var(--orange); border:1px solid rgba(255,140,0,0.25); }
+.auth-detail { font-size:.78rem; color:var(--text2); flex:1; font-family:var(--mono); }
+
+/* Indicator list */
+.indicator-list { display:flex; flex-direction:column; gap:8px; }
+.indicator-item {
+  display:flex; align-items:flex-start; gap:10px;
+  background:var(--bg); border-radius:6px;
+  padding:10px 14px; border-left:3px solid transparent;
+  font-size:.82rem; color:var(--text2);
+}
+.ind-safe { border-left-color:var(--green); }
+.ind-warn { border-left-color:var(--yellow); }
+.ind-danger { border-left-color:var(--orange); }
+.ind-critical { border-left-color:var(--red); }
+.indicator-item .ind-icon { flex-shrink:0; font-size:.95rem; }
+
+/* IOC table */
+.ioc-table { width:100%; border-collapse:collapse; }
+.ioc-table th {
+  font-family:var(--mono); font-size:.65rem; font-weight:700;
+  color:var(--text3); letter-spacing:.1em; text-transform:uppercase;
+  text-align:left; padding:8px 12px;
+  border-bottom:1px solid var(--border);
+}
+.ioc-table td {
+  font-family:var(--mono); font-size:.78rem; color:var(--text2);
+  padding:8px 12px; border-bottom:1px solid rgba(30,45,69,0.5);
+  word-break:break-all;
+}
+.ioc-table tr:last-child td { border-bottom:none; }
+.ioc-type {
+  font-size:.65rem; padding:2px 7px; border-radius:4px;
+  font-weight:700; letter-spacing:.06em;
+  background:rgba(0,212,255,0.1); color:var(--accent);
+  border:1px solid rgba(0,212,255,0.2); white-space:nowrap;
+}
+
+/* URL cards */
+.url-item {
+  background:var(--bg); border-radius:6px;
+  padding:10px 14px; margin-bottom:8px;
+  border:1px solid var(--border);
+}
+.url-addr { font-family:var(--mono); font-size:.78rem; color:var(--accent); word-break:break-all; margin-bottom:6px; }
+.url-issues { display:flex; flex-wrap:wrap; gap:6px; }
+.url-issue-tag {
+  font-size:.65rem; padding:2px 8px; border-radius:4px;
+  background:rgba(255,51,85,0.1); color:var(--red);
+  border:1px solid rgba(255,51,85,0.2); font-family:var(--mono);
+}
+
+/* Grade badge */
+.grade-badge {
+  width:56px; height:56px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.6rem; font-weight:800;
+}
+.grade-A { background:rgba(0,255,157,0.12); color:var(--green); border:2px solid rgba(0,255,157,0.4); }
+.grade-B { background:rgba(0,212,255,0.1); color:var(--accent); border:2px solid rgba(0,212,255,0.3); }
+.grade-C { background:rgba(255,214,0,0.1); color:var(--yellow); border:2px solid rgba(255,214,0,0.3); }
+.grade-D { background:rgba(255,140,0,0.1); color:var(--orange); border:2px solid rgba(255,140,0,0.3); }
+.grade-F { background:rgba(255,51,85,0.12); color:var(--red); border:2px solid rgba(255,51,85,0.4); }
+
+.domain-row { display:flex; align-items:center; gap:16px; margin-bottom:20px; }
+.domain-info h3 { font-size:1rem; font-weight:700; color:var(--text); }
+.domain-info p { font-family:var(--mono); font-size:.75rem; color:var(--text2); }
+
+/* Recommendations */
+.rec-item {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:12px 16px; border-radius:8px;
+  margin-bottom:8px; border:1px solid var(--border);
+  background:var(--surface2);
+}
+.rec-item .rec-num {
+  font-family:var(--mono); font-size:.7rem; font-weight:700;
+  width:22px; height:22px; min-width:22px;
+  background:rgba(0,212,255,0.1); border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--accent); border:1px solid rgba(0,212,255,0.2);
+}
+.rec-text { font-size:.85rem; color:var(--text2); line-height:1.5; }
+
+/* Export bar */
+.export-bar {
+  display:flex; gap:10px; align-items:center;
+  padding:16px 20px; background:var(--surface2);
+  border:1px solid var(--border); border-radius:10px;
+  margin-top:16px;
+}
+.export-bar span { font-family:var(--mono); font-size:.75rem; color:var(--text3); margin-right:auto; }
+
+/* Tabs for email paste */
+.sub-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:24px; }
+.sub-tab {
+  background:none; border:none; padding:10px 20px;
+  font-family:var(--sans); font-size:.82rem; font-weight:600;
+  color:var(--text3); cursor:pointer;
+  border-bottom:2px solid transparent; margin-bottom:-1px;
+  transition:all .2s;
+}
+.sub-tab:hover { color:var(--text); }
+.sub-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* Routing trace */
+.hop-list { position:relative; }
+.hop-item {
+  display:flex; gap:16px;
+  padding:12px 0;
+  position:relative;
+}
+.hop-item::before {
+  content:''; position:absolute; left:15px; top:30px;
+  width:2px; height:calc(100% - 14px);
+  background:var(--border);
+}
+.hop-item:last-child::before { display:none; }
+.hop-dot {
+  width:32px; height:32px; min-width:32px;
+  background:var(--surface2); border:2px solid var(--border2);
+  border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-family:var(--mono);
+  font-size:.65rem; font-weight:700; color:var(--text2);
+  position:relative; z-index:1;
+}
+.hop-info { flex:1; }
+.hop-server { font-family:var(--mono); font-size:.82rem; color:var(--accent); }
+.hop-detail { font-family:var(--mono); font-size:.72rem; color:var(--text3); margin-top:2px; }
+
+/* About page */
+.about-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:32px; }
+.about-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:20px;
+  transition:border-color .2s, transform .2s;
+}
+.about-card:hover { border-color:rgba(0,212,255,0.3); transform:translateY(-2px); }
+.about-card-icon { font-size:1.8rem; margin-bottom:12px; }
+.about-card h3 { font-size:.9rem; font-weight:700; color:var(--text); margin-bottom:8px; }
+.about-card p { font-size:.8rem; color:var(--text2); line-height:1.6; }
+
+/* Alert banner */
+.alert {
+  padding:14px 20px; border-radius:8px; margin-bottom:20px;
+  font-size:.85rem; display:flex; align-items:center; gap:10px;
+}
+.alert-danger { background:rgba(255,51,85,0.1); border:1px solid rgba(255,51,85,0.3); color:var(--red); }
+.alert-success { background:rgba(0,255,157,0.08); border:1px solid rgba(0,255,157,0.25); color:var(--green); }
+.alert-info { background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.2); color:var(--accent); }
+
+/* Row flex helpers */
+.flex { display:flex; }
+.flex-center { display:flex; align-items:center; }
+.gap-12 { gap:12px; }
+.gap-16 { gap:16px; }
+.mt-16 { margin-top:16px; }
+.mt-24 { margin-top:24px; }
+
+/* Responsive */
+@media(max-width:768px) {
+  .main { padding:16px; }
+  .result-grid { grid-template-columns:1fr; }
+  .score-dash { grid-template-columns:1fr; }
+  .about-grid { grid-template-columns:1fr 1fr; }
+  .nav-tabs { display:none; }
+}
+
+/* ── STAT CARDS ── */
+.stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+.stat-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:20px;
+  display:flex; flex-direction:column; gap:6px;
+  transition:border-color .2s, transform .2s;
+}
+.stat-card:hover { border-color:var(--border2); transform:translateY(-2px); }
+.stat-num { font-size:2.2rem; font-weight:800; color:var(--text); line-height:1; }
+.stat-label { font-family:var(--mono); font-size:.7rem; color:var(--text3); letter-spacing:.08em; text-transform:uppercase; }
+.stat-sub { font-family:var(--mono); font-size:.75rem; color:var(--text2); margin-top:4px; }
+.stat-card.green .stat-num { color:var(--green); }
+.stat-card.yellow .stat-num { color:var(--yellow); }
+.stat-card.red .stat-num { color:var(--red); }
+.stat-card.blue .stat-num { color:var(--accent); }
+
+/* Risk bar chart */
+.risk-bars { display:flex; flex-direction:column; gap:10px; }
+.risk-bar-row { display:flex; align-items:center; gap:12px; }
+.risk-bar-label { font-family:var(--mono); font-size:.72rem; color:var(--text2); width:65px; text-align:right; }
+.risk-bar-track { flex:1; height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+.risk-bar-fill { height:100%; border-radius:4px; transition:width 1s ease; }
+.risk-bar-count { font-family:var(--mono); font-size:.72rem; color:var(--text3); width:30px; }
+
+/* History table */
+.hist-table { width:100%; border-collapse:collapse; }
+.hist-table th {
+  font-family:var(--mono); font-size:.65rem; font-weight:700; color:var(--text3);
+  letter-spacing:.1em; text-transform:uppercase; text-align:left;
+  padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap;
+}
+.hist-table td {
+  font-family:var(--mono); font-size:.78rem; color:var(--text2);
+  padding:10px 12px; border-bottom:1px solid rgba(30,45,69,0.5);
+  max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.hist-table tr:hover td { background:rgba(0,212,255,0.03); cursor:pointer; }
+.hist-table tr:last-child td { border-bottom:none; }
+.hist-score { font-weight:700; }
+
+/* Blocklist */
+.bl-section { margin-bottom:24px; }
+.bl-tag {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface2); border:1px solid var(--border2);
+  border-radius:6px; padding:5px 12px;
+  font-family:var(--mono); font-size:.75rem; color:var(--text2);
+  margin:4px;
+}
+.bl-tag-del {
+  background:none; border:none; color:var(--text3);
+  cursor:pointer; font-size:.9rem; padding:0; margin-left:4px;
+}
+.bl-tag-del:hover { color:var(--red); }
+.bl-empty { font-family:var(--mono); font-size:.8rem; color:var(--text3); padding:12px 0; }
+
+/* Search bar */
+.search-bar { display:flex; gap:10px; margin-bottom:20px; }
+.search-input { flex:1; }
+
+/* Mini alert */
+.mini-alert {
+  padding:8px 14px; border-radius:6px; font-size:.8rem;
+  margin-bottom:12px; display:inline-block;
+}
+
+@media(max-width:768px) {
+  .stat-grid { grid-template-columns:1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">
+    <div class="shield">🛡</div>
+    Phish<span>Guard</span>
+  </div>
+  <span class="nav-badge">v2.0</span>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('analyze',this)">Analyze Email</button>
+    <button class="nav-tab" onclick="showPage('domain',this)">Domain Check</button>
+    <button class="nav-tab" onclick="showPage('url',this)">URL Check</button>
+    <button class="nav-tab" onclick="showPage('ioc',this)">IOC Extractor</button>
+    <button class="nav-tab" onclick="showPage('dashboard',this);loadDashboard()">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('history',this);loadHistory()">History</button>
+    <button class="nav-tab" onclick="showPage('blocklist',this);loadBlocklist()">Blocklist</button>
+    <button class="nav-tab" onclick="showPage('about',this)">About</button>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ═══════════ PAGE: ANALYZE ═══════════ -->
+<div id="page-analyze" class="page active">
+  <div class="section-header">
+    <div class="section-title">Email <span>Security Analysis</span></div>
+    <div class="section-sub">// Deep phishing, BEC & threat detection</div>
+  </div>
+
+  <!-- Input sub-tabs -->
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="showSubTab('upload',this)">Upload .eml File</button>
+    <button class="sub-tab" onclick="showSubTab('paste',this)">Paste Email Content</button>
+  </div>
+
+  <!-- Upload tab -->
+  <div id="subtab-upload">
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <div class="drop-icon">📨</div>
+      <div class="drop-title">Drop email file here</div>
+      <div class="drop-sub">or click to browse your files</div>
+      <div class="drop-formats">
+        <span class="fmt-badge">.eml</span>
+        <span class="fmt-badge">.msg</span>
+        <span class="fmt-badge">.txt</span>
+      </div>
+      <input type="file" id="file-input" accept=".eml,.msg,.txt" onchange="handleFile(this)">
+    </div>
+    <div class="file-bar" id="file-bar">
+      <span class="file-bar-icon">📄</span>
+      <div>
+        <div class="file-bar-name" id="file-bar-name">—</div>
+        <div class="file-bar-size" id="file-bar-size">—</div>
+      </div>
+      <button class="file-bar-clear" onclick="clearFile()">✕</button>
+    </div>
+    <div class="mt-16">
+      <button class="btn btn-primary" id="btn-analyze" onclick="analyzeFile()" disabled>
+        ⚡ Run Full Analysis
+      </button>
+    </div>
+  </div>
+
+  <!-- Paste tab -->
+  <div id="subtab-paste" style="display:none;">
+    <div class="card">
+      <div class="card-title">Email Details</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="input-group">
+          <label class="label">From</label>
+          <input class="input" id="p-from" type="text" placeholder="sender@example.com">
+        </div>
+        <div class="input-group">
+          <label class="label">Reply-To</label>
+          <input class="input" id="p-reply" type="text" placeholder="reply@example.com (if different)">
+        </div>
+        <div class="input-group">
+          <label class="label">Subject</label>
+          <input class="input" id="p-subject" type="text" placeholder="Email subject line">
+        </div>
+        <div class="input-group">
+          <label class="label">To</label>
+          <input class="input" id="p-to" type="text" placeholder="recipient@example.com">
+        </div>
+      </div>
+      <div class="input-group">
+        <label class="label">Email Body</label>
+        <textarea class="input" id="p-body" placeholder="Paste the email body here..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="analyzePaste()">⚡ Analyze Content</button>
+    </div>
+  </div>
+
+  <!-- Loader -->
+  <div class="loader" id="main-loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Analyzing email security...</div>
+    <div class="loader-steps">
+      <div class="loader-step">▸ Parsing email structure</div>
+      <div class="loader-step">▸ Checking SPF / DKIM / DMARC</div>
+      <div class="loader-step">▸ Scanning phishing indicators</div>
+      <div class="loader-step">▸ Extracting IOCs &amp; URL reputation</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="main-results"></div>
+</div>
+
+
+<!-- ═══════════ PAGE: DOMAIN ═══════════ -->
+<div id="page-domain" class="page">
+  <div class="section-header">
+    <div class="section-title">Domain <span>Auth Check</span></div>
+    <div class="section-sub">// SPF · DKIM · DMARC verification via live DNS</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Enter Domain</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="input-group" style="flex:1;margin:0;">
+        <input class="input" id="domain-input" type="text" placeholder="e.g. google.com" onkeydown="if(event.key==='Enter')checkDomain()">
+      </div>
+      <button class="btn btn-primary" onclick="checkDomain()">🔍 Check</button>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <span style="font-family:var(--mono);font-size:.72rem;color:var(--text3);">Try:</span>
+      <button class="btn btn-ghost btn-sm" onclick="quickDomain('google.com')">google.com</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickDomain('microsoft.com')">microsoft.com</button>
+      <button class="btn btn-ghost btn-sm" onclick="quickDomain('github.com')">github.com</button>
+    </div>
+  </div>
+  <div class="loader" id="domain-loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Querying DNS records...</div>
+  </div>
+  <div class="results" id="domain-results"></div>
+</div>
+
+
+<!-- ═══════════ PAGE: URL ═══════════ -->
+<div id="page-url" class="page">
+  <div class="section-header">
+    <div class="section-title">URL <span>Reputation</span></div>
+    <div class="section-sub">// SSL, domain age, phishing pattern analysis</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Check URL</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;">
+      <div class="input-group" style="flex:1;margin:0;">
+        <input class="input" id="url-input" type="text" placeholder="https://suspicious-site.example.com/login" onkeydown="if(event.key==='Enter')checkURL()">
+      </div>
+      <button class="btn btn-primary" onclick="checkURL()">🔍 Analyze</button>
+    </div>
+  </div>
+  <div class="loader" id="url-loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Analyzing URL reputation...</div>
+  </div>
+  <div class="results" id="url-results"></div>
+</div>
+
+
+<!-- ═══════════ PAGE: IOC ═══════════ -->
+<div id="page-ioc" class="page">
+  <div class="section-header">
+    <div class="section-title">IOC <span>Extractor</span></div>
+    <div class="section-sub">// Extract hashes, IPs, domains, BTC addresses</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Paste Text / Headers / Logs</div>
+    <textarea class="input" id="ioc-text" style="min-height:200px;" placeholder="Paste any text — email headers, log files, threat reports, malware output..."></textarea>
+    <div class="mt-16" style="display:flex;gap:12px;">
+      <button class="btn btn-primary" onclick="extractIOCs()">⚡ Extract IOCs</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('ioc-text').value=''">Clear</button>
+    </div>
+  </div>
+  <div class="loader" id="ioc-loader">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Extracting indicators...</div>
+  </div>
+  <div class="results" id="ioc-results"></div>
+</div>
+
+
+<!-- ═══════════ PAGE: ABOUT ═══════════ -->
+<div id="page-about" class="page">
+  <div class="section-header">
+    <div class="section-title">About <span>PhishGuard</span></div>
+    <div class="section-sub">// Real-world email security analysis platform</div>
+  </div>
+  <div class="about-grid">
+    <div class="about-card">
+      <div class="about-card-icon">🔐</div>
+      <h3>Authentication Verification</h3>
+      <p>Live DNS checks for SPF, DKIM, and DMARC. Detects spoofing, missing policies, and misconfigured records with letter grades.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">🎣</div>
+      <h3>Phishing Detection</h3>
+      <p>Heuristic engine with 100+ indicators: urgency patterns, threat language, credential harvesting, BEC fraud, and brand impersonation.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">🌐</div>
+      <h3>URL Reputation</h3>
+      <p>Analyzes URLs for IP-hosting, URL shorteners, homograph attacks, deceptive paths, free TLDs, and SSL validity.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">🔍</div>
+      <h3>IOC Extraction</h3>
+      <p>Automatically extracts MD5/SHA1/SHA256 hashes, IPv4 addresses, email addresses, and Bitcoin wallet addresses from any text.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">📎</div>
+      <h3>Attachment Analysis</h3>
+      <p>Detects dangerous file types (.exe, .js, .vbs), double extension tricks, misleading extensions, and macro-enabled Office files.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">🗺</div>
+      <h3>Routing Forensics</h3>
+      <p>Traces email routing hops from Received headers, extracts sending IPs, and identifies geographic anomalies.</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">API Endpoints</div>
+    <table class="ioc-table">
+      <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/analyze</td><td>Upload .eml file for full analysis</td></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/analyze-text</td><td>Analyze pasted email content</td></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/check-domain</td><td>SPF/DKIM/DMARC DNS check</td></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/check-url</td><td>URL reputation analysis</td></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/check-ip</td><td>IP reputation check</td></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/extract-iocs</td><td>IOC extraction from text</td></tr>
+      <tr><td><span class="ioc-type">POST</span></td><td>/api/export-report</td><td>Export report (json/text/html)</td></tr>
+      <tr><td><span class="ioc-type">GET</span></td><td>/health</td><td>Service health check</td></tr>
+    </table>
+  </div>
+</div>
+
+
+
+<!-- ═══════════ PAGE: DASHBOARD ═══════════ -->
+<div id="page-dashboard" class="page">
+  <div class="section-header">
+    <div class="section-title">Security <span>Dashboard</span></div>
+    <div class="section-sub">// Real-time threat statistics across all analyzed emails</div>
+  </div>
+  <div id="dashboard-content">
+    <div class="loader show" id="dash-loader">
+      <div class="loader-ring"></div>
+      <div class="loader-text">Loading dashboard...</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════ PAGE: HISTORY ═══════════ -->
+<div id="page-history" class="page">
+  <div class="section-header">
+    <div class="section-title">Analysis <span>History</span></div>
+    <div class="section-sub">// All previously analyzed emails</div>
+  </div>
+  <div class="search-bar">
+    <input class="input search-input" id="hist-search" type="text"
+           placeholder="Search by sender, subject, domain..."
+           oninput="debounceSearch()">
+    <button class="btn btn-ghost" onclick="loadHistory()">↺ Refresh</button>
+    <button class="btn btn-ghost" onclick="clearHistory()" style="color:var(--red);">🗑 Clear All</button>
+  </div>
+  <div id="history-content">
+    <div class="loader show" id="hist-loader">
+      <div class="loader-ring"></div>
+      <div class="loader-text">Loading history...</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════ PAGE: BLOCKLIST ═══════════ -->
+<div id="page-blocklist" class="page">
+  <div class="section-header">
+    <div class="section-title">Custom <span>Blocklist</span></div>
+    <div class="section-sub">// Add your own malicious domains, IPs, and file hashes</div>
+  </div>
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-title">Add Indicator</div>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:4px;">
+        <button class="sub-tab active" style="border-bottom:none;border-radius:5px;" onclick="setBLType('domain',this)">Domain</button>
+        <button class="sub-tab" style="border-bottom:none;border-radius:5px;" onclick="setBLType('ip',this)">IP</button>
+        <button class="sub-tab" style="border-bottom:none;border-radius:5px;" onclick="setBLType('hash',this)">Hash</button>
+      </div>
+      <input class="input" id="bl-input" type="text" style="flex:1;"
+             placeholder="e.g. evil-phishing-site.tk"
+             onkeydown="if(event.key==='Enter')addToBlocklist()">
+      <button class="btn btn-primary" onclick="addToBlocklist()">+ Add</button>
+    </div>
+    <div id="bl-msg"></div>
+  </div>
+  <div id="blocklist-content">
+    <div class="loader show" id="bl-loader">
+      <div class="loader-ring"></div>
+      <div class="loader-text">Loading blocklist...</div>
+    </div>
+  </div>
+</div>
+</main>
+
+<script>
+// ── Navigation ──
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function showSubTab(name, btn) {
+  document.getElementById('subtab-upload').style.display = name === 'upload' ? 'block' : 'none';
+  document.getElementById('subtab-paste').style.display = name === 'paste' ? 'block' : 'none';
+  document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ── File Handling ──
+let currentFile = null;
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+
+function handleFile(input) { if (input.files[0]) setFile(input.files[0]); }
+
+function setFile(f) {
+  currentFile = f;
+  document.getElementById('file-bar-name').textContent = f.name;
+  document.getElementById('file-bar-size').textContent = (f.size / 1024).toFixed(1) + ' KB';
+  document.getElementById('file-bar').classList.add('show');
+  document.getElementById('btn-analyze').disabled = false;
+}
+
+function clearFile() {
+  currentFile = null;
+  document.getElementById('file-input').value = '';
+  document.getElementById('file-bar').classList.remove('show');
+  document.getElementById('btn-analyze').disabled = true;
+}
+
+// ── Loaders ──
+function setLoader(id, show) {
+  document.getElementById(id).classList.toggle('show', show);
+}
+function setResults(id, show) {
+  document.getElementById(id).classList.toggle('show', show);
+}
+
+// ── Analyze File ──
+async function analyzeFile() {
+  if (!currentFile) return;
+  const fd = new FormData();
+  fd.append('email', currentFile);
+  setLoader('main-loader', true);
+  setResults('main-results', false);
+  try {
+    const res = await fetch('/api/analyze', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) renderReport(data.report, 'main-results');
+    else renderError(data.error, 'main-results');
+  } catch(e) { renderError('Network error: ' + e.message, 'main-results'); }
+  finally { setLoader('main-loader', false); }
+}
+
+// ── Analyze Paste ──
+async function analyzePaste() {
+  const body = document.getElementById('p-body').value.trim();
+  if (!body && !document.getElementById('p-from').value.trim()) {
+    alert('Please enter at least a From address and email body.'); return;
+  }
+  setLoader('main-loader', true);
+  setResults('main-results', false);
+  document.getElementById('subtab-paste').scrollIntoView({ behavior: 'smooth' });
+  try {
+    const res = await fetch('/api/analyze-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: document.getElementById('p-from').value,
+        to: document.getElementById('p-to').value,
+        subject: document.getElementById('p-subject').value,
+        reply_to: document.getElementById('p-reply').value,
+        body: body,
+      })
+    });
+    const data = await res.json();
+    if (data.success) renderReport(data.report, 'main-results');
+    else renderError(data.error, 'main-results');
+  } catch(e) { renderError('Network error: ' + e.message, 'main-results'); }
+  finally { setLoader('main-loader', false); }
+}
+
+// ── Domain Check ──
+function quickDomain(d) { document.getElementById('domain-input').value = d; checkDomain(); }
+
+async function checkDomain() {
+  const domain = document.getElementById('domain-input').value.trim();
+  if (!domain) return;
+  setLoader('domain-loader', true);
+  setResults('domain-results', false);
+  try {
+    const res = await fetch('/api/check-domain', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain })
+    });
+    const data = await res.json();
+    if (data.success) renderDomainResults(data.results, 'domain-results');
+    else renderError(data.error, 'domain-results');
+  } catch(e) { renderError('Network error: ' + e.message, 'domain-results'); }
+  finally { setLoader('domain-loader', false); }
+}
+
+// ── URL Check ──
+async function checkURL() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+  setLoader('url-loader', true);
+  setResults('url-results', false);
+  try {
+    const res = await fetch('/api/check-url', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await res.json();
+    if (data.success) renderURLResults(data.results, 'url-results');
+    else renderError(data.error, 'url-results');
+  } catch(e) { renderError('Network error: ' + e.message, 'url-results'); }
+  finally { setLoader('url-loader', false); }
+}
+
+// ── IOC Extractor ──
+async function extractIOCs() {
+  const text = document.getElementById('ioc-text').value.trim();
+  if (!text) return;
+  setLoader('ioc-loader', true);
+  setResults('ioc-results', false);
+  try {
+    const res = await fetch('/api/extract-iocs', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (data.success) renderIOCResults(data.iocs, 'ioc-results');
+    else renderError(data.error, 'ioc-results');
+  } catch(e) { renderError('Network error: ' + e.message, 'ioc-results'); }
+  finally { setLoader('ioc-loader', false); }
+}
+
+// ══════════════════════════════════════
+//  RENDER FUNCTIONS
+// ══════════════════════════════════════
+
+function renderError(msg, targetId) {
+  const el = document.getElementById(targetId);
+  el.innerHTML = '<div class="alert alert-danger">⚠ ' + escHtml(msg) + '</div>';
+  setResults(targetId, true);
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Full Report ──
+function renderReport(report, targetId) {
+  const el = document.getElementById(targetId);
+  const a = report.overall_assessment;
+  const score = parseInt(a.security_score, 10);
+  const risk = a.risk_level;
+  const colorMap = { LOW: '#00ff9d', MEDIUM: '#ffd600', HIGH: '#ff8c00', CRITICAL: '#ff3355' };
+  const color = colorMap[risk] || '#00d4ff';
+
+  // Score ring
+  const radius = 52, circ = 2 * Math.PI * radius;
+  const filled = circ * (score / 100);
+
+  let html = '<div class="score-dash">';
+  html += '<div class="score-circle-wrap">';
+  html += '<svg class="score-ring-svg" viewBox="0 0 120 120">';
+  html += '<circle class="score-ring-track" cx="60" cy="60" r="' + radius + '"/>';
+  html += '<circle class="score-ring-fill" cx="60" cy="60" r="' + radius + '" stroke="' + color + '" stroke-dasharray="' + filled + ' ' + (circ - filled) + '"/>';
+  html += '<text class="score-ring-text" x="60" y="58" text-anchor="middle" dominant-baseline="middle">' + (isNaN(score) ? '?' : score) + '</text>';
+  html += '<text class="score-ring-label" x="60" y="76" text-anchor="middle">/100</text>';
+  html += '</svg>';
+  html += '</div>';
+  html += '<div class="score-meta">';
+  html += '<div class="risk-pill risk-' + risk + '">' + risk + ' RISK</div>';
+  html += '<div class="score-verdict">' + escHtml(a.verdict) + '</div>';
+  html += '<div class="score-conf">Confidence: <span>' + a.confidence + '</span> &nbsp;·&nbsp; Analyzed: <span>' + new Date(report.metadata.analyzed_at).toLocaleTimeString() + '</span></div>';
+  if (report.metadata.subject) {
+    html += '<div class="score-conf">Subject: <span>' + escHtml(report.metadata.subject.slice(0,60)) + '</span></div>';
+  }
+  html += '</div></div>';
+
+  // Recommendations
+  const recs = report.recommendations || [];
+  if (recs.length) {
+    html += '<div class="result-section" style="margin-bottom:16px;">';
+    html += '<div class="rs-title"><span class="rs-title-icon">💡</span>Recommendations</div>';
+    recs.forEach((r, i) => {
+      html += '<div class="rec-item"><div class="rec-num">' + (i+1) + '</div><div class="rec-text">' + escHtml(r) + '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="result-grid">';
+
+  // Authentication
+  if (report.authentication) {
+    const auth = report.authentication;
+    html += '<div class="result-section">';
+    html += '<div class="rs-title"><span class="rs-title-icon">🔐</span>Email Authentication</div>';
+    ['spf','dkim','dmarc'].forEach(k => {
+      const r = auth[k] || {};
+      const status = r.status || 'none';
+      const cls = status === 'pass' ? 'auth-pass' : status === 'fail' ? 'auth-fail' : status === 'error' ? 'auth-error' : 'auth-none';
+      html += '<div class="auth-row">';
+      html += '<span class="auth-name">' + k.toUpperCase() + '</span>';
+      html += '<span class="auth-status ' + cls + '">' + status.toUpperCase() + '</span>';
+      html += '<span class="auth-detail">' + escHtml((r.details || '').slice(0,60)) + '</span>';
+      html += '</div>';
+    });
+    const grade = auth.grade || 'F';
+    const gcls = 'grade-' + (['A+','A'].includes(grade) ? 'A' : grade[0]);
+    html += '<div style="display:flex;align-items:center;gap:12px;margin-top:16px;">';
+    html += '<div class="grade-badge ' + gcls + '">' + grade + '</div>';
+    html += '<div style="font-family:var(--mono);font-size:.8rem;color:var(--text2);">Auth Score<br><strong style="color:var(--text);">' + (auth.total_score||0) + ' / ' + (auth.max_score||90) + '</strong></div>';
+    html += '</div>';
+    html += '</div>';
+  }
+
+  // Phishing analysis
+  const ph = report.phishing_indicators || {};
+  html += '<div class="result-section">';
+  html += '<div class="rs-title"><span class="rs-title-icon">🎣</span>Phishing Analysis</div>';
+  html += '<div class="risk-pill risk-' + (ph.risk_level||'LOW') + '" style="margin-bottom:12px;">' + (ph.risk_level||'LOW') + '</div>';
+  html += '<div style="font-size:.82rem;color:var(--text2);margin-bottom:12px;">' + escHtml(ph.summary||'') + '</div>';
+  const inds = ph.indicators || [];
+  if (inds.length) {
+    html += '<div class="indicator-list">';
+    inds.forEach(ind => {
+      html += '<div class="indicator-item ind-danger"><span class="ind-icon">⚑</span>' + escHtml(ind) + '</div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+
+  html += '</div>'; // end result-grid
+
+  // Threat Intel / IOCs
+  const ti = report.threat_intelligence || {};
+  const iocs = ti.iocs || {};
+  const allIOCs = [];
+  (iocs.hashes?.md5||[]).forEach(h => allIOCs.push({type:'MD5', value:h}));
+  (iocs.hashes?.sha256||[]).forEach(h => allIOCs.push({type:'SHA256', value:h}));
+  (iocs.network?.ips||[]).forEach(ip => allIOCs.push({type:'IPv4', value:ip}));
+  (iocs.network?.emails||[]).forEach(e => allIOCs.push({type:'Email', value:e}));
+  (iocs.crypto?.btc_addresses||[]).forEach(b => allIOCs.push({type:'Bitcoin', value:b}));
+
+  if (allIOCs.length) {
+    html += '<div class="result-section full" style="margin-bottom:16px;">';
+    html += '<div class="rs-title"><span class="rs-title-icon">🔍</span>Indicators of Compromise (IOCs) — ' + allIOCs.length + ' found</div>';
+    html += '<table class="ioc-table"><tr><th>Type</th><th>Value</th></tr>';
+    allIOCs.forEach(ioc => {
+      html += '<tr><td><span class="ioc-type">' + ioc.type + '</span></td><td>' + escHtml(ioc.value) + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+
+  // Suspicious URLs
+  const urlRep = ti.url_reputation || [];
+  const suspURLs = urlRep.filter(u => !u.safe);
+  if (suspURLs.length) {
+    html += '<div class="result-section full" style="margin-bottom:16px;">';
+    html += '<div class="rs-title"><span class="rs-title-icon">🔗</span>Suspicious URLs (' + suspURLs.length + ')</div>';
+    suspURLs.forEach(u => {
+      html += '<div class="url-item">';
+      html += '<div class="url-addr">' + escHtml((u.url||'').slice(0,120)) + '</div>';
+      html += '<div class="url-issues">';
+      (u.checks||[]).forEach(c => { html += '<span class="url-issue-tag">' + escHtml(c) + '</span>'; });
+      html += '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // Attachments
+  const att = report.attachments || {};
+  if (att.count > 0) {
+    html += '<div class="result-section full" style="margin-bottom:16px;">';
+    html += '<div class="rs-title"><span class="rs-title-icon">📎</span>Attachments (' + att.count + ')</div>';
+    html += '<table class="ioc-table"><tr><th>Filename</th><th>Type</th><th>Size</th><th>Risk</th></tr>';
+    (att.details||[]).forEach(a => {
+      const risk = a.is_dangerous ? '<span style="color:var(--red);font-weight:700;">⚠ DANGEROUS</span>' : '<span style="color:var(--green);">✓ Safe</span>';
+      html += '<tr><td>' + escHtml(a.filename||'') + '</td><td><span class="ioc-type">' + escHtml(a.content_type||'') + '</span></td><td>' + Math.round((a.size||0)/1024) + ' KB</td><td>' + risk + '</td></tr>';
+    });
+    html += '</table></div>';
+  }
+
+  // Routing trace
+  const routing = report.routing_analysis || {};
+  if (routing.hops > 0) {
+    html += '<div class="result-section full" style="margin-bottom:16px;">';
+    html += '<div class="rs-title"><span class="rs-title-icon">🗺</span>Routing Trace (' + routing.hops + ' hops)</div>';
+    html += '<div class="hop-list">';
+    (routing.trace||[]).forEach((hop, i) => {
+      html += '<div class="hop-item"><div class="hop-dot">' + (i+1) + '</div><div class="hop-info">';
+      if (hop.from) html += '<div class="hop-server">' + escHtml(hop.from) + '</div>';
+      const details = [hop.by && ('via ' + hop.by), hop.ip && ('[' + hop.ip + ']')].filter(Boolean).join(' ');
+      if (details) html += '<div class="hop-detail">' + escHtml(details) + '</div>';
+      html += '</div></div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Export bar
+  html += '<div class="export-bar">';
+  html += '<span>📥 Export report</span>';
+  html += '<button class="btn btn-ghost btn-sm" onclick="exportReport(\'json\')">JSON</button>';
+  html += '<button class="btn btn-ghost btn-sm" onclick="exportReport(\'text\')">Text</button>';
+  html += '<button class="btn btn-ghost btn-sm" onclick="exportReport(\'html\')">HTML</button>';
+  html += '</div>';
+
+  el.innerHTML = html;
+  setResults(targetId, true);
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Store report for export
+  window._lastReport = report;
+}
+
+// ── Domain Results ──
+function renderDomainResults(results, targetId) {
+  const el = document.getElementById(targetId);
+  const grade = results.grade || 'F';
+  const gcls = 'grade-' + (['A+','A'].includes(grade) ? 'A' : grade[0]);
+
+  let html = '<div class="result-section">';
+  html += '<div class="domain-row">';
+  html += '<div class="grade-badge ' + gcls + '">' + grade + '</div>';
+  html += '<div class="domain-info"><h3>' + escHtml(results.domain) + '</h3>';
+  html += '<p>' + escHtml(results.summary || '') + '</p></div>';
+  html += '</div>';
+
+  ['spf','dkim','dmarc'].forEach(k => {
+    const r = results[k] || {};
+    const status = r.status || 'none';
+    const cls = status === 'pass' ? 'auth-pass' : status === 'fail' ? 'auth-fail' : status === 'error' ? 'auth-error' : 'auth-none';
+    html += '<div class="auth-row">';
+    html += '<span class="auth-name">' + k.toUpperCase() + '</span>';
+    html += '<span class="auth-status ' + cls + '">' + status.toUpperCase() + '</span>';
+    html += '<span class="auth-detail">' + escHtml(r.details || '') + '</span>';
+    html += '</div>';
+    if (r.record) {
+      html += '<div style="font-family:var(--mono);font-size:.7rem;color:var(--text3);padding:4px 12px 8px 62px;word-break:break-all;">' + escHtml(r.record.slice(0,120)) + (r.record.length > 120 ? '…' : '') + '</div>';
+    }
+    // Recommendations
+    (r.recommendations||[]).forEach(rec => {
+      html += '<div class="indicator-item ind-warn" style="margin:4px 0 8px 62px;"><span>💡</span>' + escHtml(rec) + '</div>';
+    });
+  });
+
+  html += '<div style="margin-top:12px;font-family:var(--mono);font-size:.8rem;color:var(--text2);">Total Score: <strong style="color:var(--text);">' + (results.total_score||0) + ' / ' + (results.max_score||90) + '</strong></div>';
+  html += '</div>';
+
+  el.innerHTML = html;
+  setResults(targetId, true);
+}
+
+// ── URL Results ──
+function renderURLResults(results, targetId) {
+  const el = document.getElementById(targetId);
+  const safe = results.safe;
+  const cls = safe ? 'alert-success' : 'alert-danger';
+  const icon = safe ? '✓' : '⚠';
+  const msg = safe ? 'URL appears safe' : 'URL has suspicious indicators';
+
+  let html = '<div class="alert ' + cls + '">' + icon + ' ' + msg + '</div>';
+  html += '<div class="result-section">';
+  html += '<div class="rs-title">Analysis Details</div>';
+  html += '<div class="auth-row"><span class="auth-name" style="width:80px;min-width:80px;">Status</span>';
+  html += safe ? '<span class="auth-status auth-pass">SAFE</span>' : '<span class="auth-status auth-fail">SUSPICIOUS</span>';
+  html += '</div>';
+  html += '<div class="auth-row"><span class="auth-name" style="width:80px;min-width:80px;">Risk</span><span class="auth-detail">' + (results.risk_score||0) + ' (lower is safer)</span></div>';
+
+  if ((results.checks||[]).length) {
+    html += '<div style="margin-top:16px;">';
+    results.checks.forEach(c => {
+      html += '<div class="indicator-item ind-danger" style="margin-bottom:6px;"><span>⚑</span>' + escHtml(c) + '</div>';
+    });
+    html += '</div>';
+  } else if (safe) {
+    html += '<div class="indicator-item ind-safe" style="margin-top:12px;"><span>✓</span>No suspicious patterns detected</div>';
+  }
+  html += '</div>';
+
+  el.innerHTML = html;
+  setResults(targetId, true);
+}
+
+// ── IOC Results ──
+function renderIOCResults(iocs, targetId) {
+  const el = document.getElementById(targetId);
+  const rows = [];
+  (iocs.hashes?.md5||[]).forEach(h => rows.push({type:'MD5', value:h}));
+  (iocs.hashes?.sha1||[]).forEach(h => rows.push({type:'SHA1', value:h}));
+  (iocs.hashes?.sha256||[]).forEach(h => rows.push({type:'SHA256', value:h}));
+  (iocs.network?.ips||[]).forEach(ip => rows.push({type:'IPv4', value:ip}));
+  (iocs.network?.emails||[]).forEach(e => rows.push({type:'Email', value:e}));
+  (iocs.network?.domains||[]).forEach(d => rows.push({type:'Domain', value:d}));
+  (iocs.crypto?.btc_addresses||[]).forEach(b => rows.push({type:'Bitcoin', value:b}));
+
+  if (!rows.length) {
+    el.innerHTML = '<div class="alert alert-info">ℹ No IOCs detected in the provided text.</div>';
+    setResults(targetId, true);
+    return;
+  }
+
+  let html = '<div class="alert alert-info">ℹ ' + rows.length + ' indicator(s) extracted</div>';
+  html += '<div class="result-section">';
+  html += '<div class="rs-title">Extracted Indicators of Compromise</div>';
+  html += '<table class="ioc-table"><tr><th>Type</th><th>Value</th></tr>';
+  rows.forEach(r => {
+    html += '<tr><td><span class="ioc-type">' + r.type + '</span></td><td>' + escHtml(r.value) + '</td></tr>';
+  });
+  html += '</table></div>';
+
+  el.innerHTML = html;
+  setResults(targetId, true);
+}
+
+// ── Export ──
+async function exportReport(fmt) {
+  if (!window._lastReport) return;
+  try {
+    const res = await fetch('/api/export-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ report: window._lastReport, format: fmt })
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'phishguard_report.' + fmt;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch(e) { alert('Export failed: ' + e.message); }
+}
+
+// ══════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════
+async function loadDashboard() {
+  const container = document.getElementById('dashboard-content');
+  try {
+    const [statsRes, histRes] = await Promise.all([
+      fetch('/api/stats'),
+      fetch('/api/history?limit=5')
+    ]);
+    const statsData = await statsRes.json();
+    const histData = await histRes.json();
+    if (!statsData.success) { container.innerHTML = '<div class="alert alert-danger">Failed to load stats</div>'; return; }
+    const s = statsData.stats;
+    const byRisk = s.by_risk || {};
+    const total = s.total || 0;
+
+    // Risk colors
+    const riskColors = { CRITICAL:'#ff3355', HIGH:'#ff8c00', MEDIUM:'#ffd600', LOW:'#00ff9d', UNKNOWN:'#4a6a8a' };
+    const riskOrder = ['CRITICAL','HIGH','MEDIUM','LOW'];
+
+    // Stat cards
+    let html = '<div class="stat-grid">';
+    html += '<div class="stat-card blue"><div class="stat-num">' + total + '</div><div class="stat-label">Total Analyzed</div><div class="stat-sub">Last 7 days: ' + s.last_7_days + '</div></div>';
+    html += '<div class="stat-card red"><div class="stat-num">' + ((byRisk.CRITICAL||0)+(byRisk.HIGH||0)) + '</div><div class="stat-label">High Threats</div><div class="stat-sub">CRITICAL + HIGH risk</div></div>';
+    html += '<div class="stat-card yellow"><div class="stat-num">' + Math.round(s.avg_score || 0) + '</div><div class="stat-label">Avg Score</div><div class="stat-sub">Out of 100</div></div>';
+    html += '<div class="stat-card ' + ((s.dangerous_attachments||0) > 0 ? "red" : "green") + '"><div class="stat-num">' + (s.dangerous_attachments||0) + '</div><div class="stat-label">Dangerous Files</div><div class="stat-sub">' + ((s.dangerous_attachments||0) > 0 ? "⚠ Found in analyzed emails" : "None detected yet") + '</div></div>';
+    html += '</div>';
+
+    html += '<div class="result-grid">';
+
+    // Risk breakdown chart
+    html += '<div class="result-section">';
+    html += '<div class="rs-title"><span class="rs-title-icon">📊</span>Risk Distribution</div>';
+    if (total === 0) {
+      html += '<div class="bl-empty">No emails analyzed yet. Start analyzing to see trends here.</div>';
+    } else {
+      html += '<div class="risk-bars">';
+      riskOrder.forEach(risk => {
+        const count = byRisk[risk] || 0;
+        const pct = total > 0 ? (count / total * 100).toFixed(0) : 0;
+        html += '<div class="risk-bar-row">';
+        html += '<div class="risk-bar-label" style="color:' + riskColors[risk] + ';">' + risk + '</div>';
+        html += '<div class="risk-bar-track"><div class="risk-bar-fill" style="width:' + pct + '%;background:' + riskColors[risk] + ';"></div></div>';
+        html += '<div class="risk-bar-count">' + count + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // Top threat domains
+    html += '<div class="result-section">';
+    html += '<div class="rs-title"><span class="rs-title-icon">🎯</span>Top Threat Domains</div>';
+    const domains = s.top_threat_domains || [];
+    if (!domains.length) {
+      html += '<div class="bl-empty">No threat data yet.</div>';
+    } else {
+      domains.forEach((d,i) => {
+        html += '<div class="auth-row"><span class="auth-name" style="width:20px;">' + (i+1) + '.</span>';
+        html += '<span class="auth-detail">' + escHtml(d.domain || 'Unknown') + '</span>';
+        html += '<span class="auth-status auth-fail">' + d.count + ' hits</span></div>';
+      });
+    }
+    html += '</div>';
+    html += '</div>'; // end result-grid
+
+    // Recent analyses
+    const records = (histData.records || []).slice(0, 5);
+    if (records.length) {
+      html += '<div class="result-section full" style="margin-top:16px;">';
+      html += '<div class="rs-title"><span class="rs-title-icon">🕐</span>Recent Analyses</div>';
+      html += renderHistoryTable(records, true);
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+    document.getElementById('dash-loader') && (document.getElementById('dash-loader').style.display='none');
+  } catch(e) {
+    container.innerHTML = '<div class="alert alert-danger">Error loading dashboard: ' + escHtml(e.message) + '</div>';
+  }
+}
+
+
+// ══════════════════════════════════════
+//  HISTORY
+// ══════════════════════════════════════
+let _searchTimer = null;
+function debounceSearch() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    const q = document.getElementById('hist-search').value.trim();
+    if (q.length >= 2) searchHistory(q);
+    else if (q.length === 0) loadHistory();
+  }, 350);
+}
+
+async function loadHistory() {
+  const container = document.getElementById('history-content');
+  const loader = document.getElementById('hist-loader');
+  if (loader) loader.classList.add('show');
+  try {
+    const res = await fetch('/api/history?limit=100');
+    const data = await res.json();
+    if (data.success) {
+      if (!data.records.length) {
+        container.innerHTML = '<div class="alert alert-info">No analyses yet. Go to Analyze Email to get started.</div>';
+      } else {
+        container.innerHTML = '<div class="result-section">' +
+          '<div class="rs-title"><span class="rs-title-icon">📋</span>' + data.records.length + ' analyses</div>' +
+          renderHistoryTable(data.records, false) + '</div>';
+      }
+    } else {
+      container.innerHTML = '<div class="alert alert-danger">' + escHtml(data.error) + '</div>';
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="alert alert-danger">Error: ' + escHtml(e.message) + '</div>';
+  }
+  if (loader) loader.classList.remove('show');
+}
+
+async function searchHistory(q) {
+  const container = document.getElementById('history-content');
+  try {
+    const res = await fetch('/api/history/search?q=' + encodeURIComponent(q));
+    const data = await res.json();
+    if (data.success) {
+      if (!data.results.length) {
+        container.innerHTML = '<div class="alert alert-info">No results for "' + escHtml(q) + '"</div>';
+      } else {
+        container.innerHTML = '<div class="result-section">' +
+          '<div class="rs-title">Search results for "' + escHtml(q) + '" (' + data.results.length + ')</div>' +
+          renderHistoryTable(data.results, false) + '</div>';
+      }
+    }
+  } catch(e) {}
+}
+
+function renderHistoryTable(records, compact) {
+  const riskColors = { CRITICAL:'var(--red)', HIGH:'var(--orange)', MEDIUM:'var(--yellow)', LOW:'var(--green)' };
+  let t = '<table class="hist-table"><tr><th>#</th>';
+  if (!compact) t += '<th>Date</th>';
+  t += '<th>From</th><th>Subject</th><th>Score</th><th>Risk</th>';
+  if (!compact) t += '<th>Actions</th>';
+  t += '</tr>';
+  records.forEach(r => {
+    const color = riskColors[r.risk_level] || 'var(--text3)';
+    const date = r.analyzed_at ? new Date(r.analyzed_at).toLocaleString() : '-';
+    t += '<tr onclick="viewHistoryItem(' + r.id + ')">';
+    t += '<td style="color:var(--text3);">' + r.id + '</td>';
+    if (!compact) t += '<td style="font-size:.7rem;">' + date + '</td>';
+    t += '<td>' + escHtml((r.sender||'').slice(0,30)) + '</td>';
+    t += '<td>' + escHtml((r.subject||'').slice(0,40)) + '</td>';
+    t += '<td class="hist-score" style="color:' + color + ';">' + (r.security_score||0) + '</td>';
+    t += '<td><span class="risk-pill risk-' + r.risk_level + '" style="padding:3px 10px;font-size:.65rem;">' + r.risk_level + '</span></td>';
+    if (!compact) t += '<td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deleteHistory(' + r.id + ')" style="color:var(--red);padding:4px 10px;">✕</button></td>';
+    t += '</tr>';
+  });
+  t += '</table>';
+  return t;
+}
+
+async function viewHistoryItem(id) {
+  try {
+    const res = await fetch('/api/history/' + id);
+    const data = await res.json();
+    if (data.success) {
+      showPage('analyze', document.querySelector('.nav-tab'));
+      document.querySelector('.nav-tab').classList.add('active');
+      renderReport(data.report, 'main-results');
+    }
+  } catch(e) { alert('Error loading report: ' + e.message); }
+}
+
+async function deleteHistory(id) {
+  if (!confirm('Delete this analysis?')) return;
+  await fetch('/api/history/' + id, { method: 'DELETE' });
+  loadHistory();
+}
+
+async function clearHistory() {
+  if (!confirm('Delete ALL analysis history? This cannot be undone.')) return;
+  // Delete all by loading IDs first
+  const res = await fetch('/api/history?limit=1000');
+  const data = await res.json();
+  await Promise.all((data.records||[]).map(r => fetch('/api/history/'+r.id, {method:'DELETE'})));
+  loadHistory();
+}
+
+
+// ══════════════════════════════════════
+//  BLOCKLIST
+// ══════════════════════════════════════
+let _blType = 'domain';
+
+function setBLType(type, btn) {
+  _blType = type;
+  document.querySelectorAll('#page-blocklist .sub-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const placeholders = { domain: 'e.g. evil-phishing-site.tk', ip: 'e.g. 185.220.101.47', hash: 'e.g. 5d41402abc4b2a76b9719d911017c592' };
+  document.getElementById('bl-input').placeholder = placeholders[type] || '';
+}
+
+async function loadBlocklist() {
+  const container = document.getElementById('blocklist-content');
+  const loader = document.getElementById('bl-loader');
+  if (loader) loader.classList.add('show');
+  try {
+    const res = await fetch('/api/blocklist');
+    const data = await res.json();
+    if (data.success) {
+      const bl = data.blocklist;
+      let html = '<div class="result-grid">';
+
+      // Builtin stats
+      html += '<div class="result-section">';
+      html += '<div class="rs-title"><span class="rs-title-icon">🔒</span>Built-in Threat DB</div>';
+      html += '<div class="auth-row"><span class="auth-name" style="width:100px;">Domains</span><span class="auth-detail">' + bl.builtin.domains + ' entries</span></div>';
+      html += '<div class="auth-row"><span class="auth-name" style="width:100px;">IP Ranges</span><span class="auth-detail">' + bl.builtin.ip_ranges + ' ranges</span></div>';
+      html += '<div class="auth-row"><span class="auth-name" style="width:100px;">Hashes</span><span class="auth-detail">' + bl.builtin.hashes + ' file hashes</span></div>';
+      html += '<div style="margin-top:12px;font-family:var(--mono);font-size:.72rem;color:var(--text3);">Built-in entries are from public phishing/malware intelligence sources.</div>';
+      html += '</div>';
+
+      // Custom entries
+      html += '<div class="result-section">';
+      html += '<div class="rs-title"><span class="rs-title-icon">✏</span>Custom Entries</div>';
+
+      ['domains','ips','hashes'].forEach(category => {
+        const items = bl.custom[category] || [];
+        const label = category.charAt(0).toUpperCase() + category.slice(1);
+        html += '<div style="margin-bottom:14px;">';
+        html += '<div style="font-family:var(--mono);font-size:.68rem;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em;">' + label + ' (' + items.length + ')</div>';
+        if (!items.length) {
+          html += '<div class="bl-empty">None added yet</div>';
+        } else {
+          items.forEach(item => {
+            html += '<span class="bl-tag">' + escHtml(item) + '</span>';
+          });
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+      html += '</div>';
+      container.innerHTML = html;
+    }
+  } catch(e) {
+    container.innerHTML = '<div class="alert alert-danger">Error loading blocklist: ' + escHtml(e.message) + '</div>';
+  }
+  if (loader) loader.classList.remove('show');
+}
+
+async function addToBlocklist() {
+  const value = document.getElementById('bl-input').value.trim();
+  const msgEl = document.getElementById('bl-msg');
+  if (!value) { msgEl.innerHTML = '<div class="mini-alert" style="background:rgba(255,140,0,.1);color:var(--orange);border:1px solid rgba(255,140,0,.3);">Please enter a value</div>'; return; }
+  try {
+    const res = await fetch('/api/blocklist/add', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ type: _blType, value })
+    });
+    const data = await res.json();
+    if (data.success) {
+      msgEl.innerHTML = '<div class="mini-alert" style="background:rgba(0,255,157,.08);color:var(--green);border:1px solid rgba(0,255,157,.25);">✓ Added: ' + escHtml(value) + '</div>';
+      document.getElementById('bl-input').value = '';
+      setTimeout(() => loadBlocklist(), 300);
+    } else {
+      msgEl.innerHTML = '<div class="mini-alert" style="background:rgba(255,51,85,.1);color:var(--red);border:1px solid rgba(255,51,85,.3);">Error: ' + escHtml(data.error||'Unknown') + '</div>';
+    }
+  } catch(e) {
+    msgEl.innerHTML = '<div class="mini-alert" style="background:rgba(255,51,85,.1);color:var(--red);">Network error</div>';
+  }
+  setTimeout(() => { msgEl.innerHTML = ''; }, 4000);
+}
+</script>
+</body>
+</html>
